@@ -1,6 +1,6 @@
-const width = 600;
-const height = 600;
-const margin = {top: 100, right: 100, bottom: 100, left: 100}; // Increased margins
+const width = 700;
+const height = 700;
+const margin = {top: 120, right: 150, bottom: 120, left: 150}; // Increased margins for long labels
 
 // Categories and their corresponding labels
 //const categories = ["Technology", "System", "People", "Process", "Influence"];
@@ -103,13 +103,13 @@ d3.csv("your-data.csv").then(function(data) {
 
 function RadarCombinedChart(container, data, options) {
     const cfg = {
-        w: options.w || 600,
-        h: options.h || 600,
-        margin: options.margin || {top: 100, right: 200, bottom: 100, left: 100},  // Increased right margin for legend
+        w: options.w || 700,
+        h: options.h || 700,
+        margin: options.margin || {top: 120, right: 200, bottom: 120, left: 200},  // Increased margins for long labels
         levels: options.levels || 5,              // Number of concentric circles
         maxValue: options.maxValue || 5,          // Max value for the data
-        labelFactor: 1.25,                        // Distance of the labels from the axes
-        wrapWidth: 60,                            // Width to wrap the labels
+        labelFactor: 1.35,                        // Distance of the labels from the axes (increased)
+        wrapWidth: 80,                            // Width to wrap the labels (increased)
         opacityArea: 0.1,                         // Light opacity for fill
         dotRadius: 8,                             // Radius for the circles
         strokeWidth: 2,                           // Width of the stroke around the lines
@@ -186,12 +186,39 @@ function RadarCombinedChart(container, data, options) {
     // Category labels (names of the axes)
     axis.append("text")
         .attr("class", "legend")
-        .style("font-size", "12px")
+        .style("font-size", "11px")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("x", (d, i) => rScale(cfg.maxValue * cfg.labelFactor) * Math.cos(angleSlice * i - Math.PI / 2))
         .attr("y", (d, i) => rScale(cfg.maxValue * cfg.labelFactor) * Math.sin(angleSlice * i - Math.PI / 2))
-        .text(d => d);  // Add the axis label (category name)
+        .each(function(d) {
+            const text = d3.select(this);
+            const words = d.split(/\s+/);
+            if (words.length > 2) {
+                // For long labels, split into multiple lines
+                text.text(null);
+                words.forEach((word, i) => {
+                    if (i === 0) {
+                        text.append("tspan")
+                            .attr("x", text.attr("x"))
+                            .attr("dy", "-0.3em")
+                            .text(word);
+                    } else if (i === 1) {
+                        text.append("tspan")
+                            .attr("x", text.attr("x"))
+                            .attr("dy", "1.1em")
+                            .text(word);
+                    } else {
+                        text.append("tspan")
+                            .attr("x", text.attr("x"))
+                            .attr("dy", "1.1em")
+                            .text(word);
+                    }
+                });
+            } else {
+                text.text(d);
+            }
+        });
 
     // Radar line (connect data points with straight lines for each person)
     const radarLine = d3.lineRadial()
@@ -281,13 +308,13 @@ function RadarChart(container, data, options, color, personName) {
     console.log(`options: ${options.color}`)
     console.log(`color : ${color}`)
     const cfg = {
-        w: options.w || 600,
-        h: options.h || 600,
-        margin: options.margin || {top: 100, right: 100, bottom: 100, left: 100},  // Margins
+        w: options.w || 700,
+        h: options.h || 700,
+        margin: options.margin || {top: 120, right: 150, bottom: 120, left: 150},  // Increased margins for long labels
         levels: options.levels || 5,              // Number of concentric circles
         maxValue: options.maxValue || 5,          // Max value for the data
-        labelFactor: 1.25,                        // Distance of the labels from the axes
-        wrapWidth: 60,                            // Width to wrap the labels
+        labelFactor: 1.35,                        // Distance of the labels from the axes (increased)
+        wrapWidth: 80,                            // Width to wrap the labels (increased)
         opacityArea: 0.35,                        // Opacity of the filled area
         dotRadius: 6,                             // Increased radius of the dots for dragging
         strokeWidth: 2,                           // Width of the stroke around the filled area
@@ -363,12 +390,39 @@ function RadarChart(container, data, options, color, personName) {
     // Axis labels (Category labels) - move slightly outward from the axis
     axis.append("text")
         .attr("class", "legend")
-        .style("font-size", "12px")
+        .style("font-size", "11px")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("x", (d, i) => rScale(cfg.maxValue * cfg.labelFactor) * Math.cos(angleSlice * i - Math.PI / 2))
         .attr("y", (d, i) => rScale(cfg.maxValue * cfg.labelFactor) * Math.sin(angleSlice * i - Math.PI / 2))
-        .text(d => d);  // Add the axis label (category name)
+        .each(function(d) {
+            const text = d3.select(this);
+            const words = d.split(/\s+/);
+            if (words.length > 2) {
+                // For long labels, split into multiple lines
+                text.text(null);
+                words.forEach((word, i) => {
+                    if (i === 0) {
+                        text.append("tspan")
+                            .attr("x", text.attr("x"))
+                            .attr("dy", "-0.3em")
+                            .text(word);
+                    } else if (i === 1) {
+                        text.append("tspan")
+                            .attr("x", text.attr("x"))
+                            .attr("dy", "1.1em")
+                            .text(word);
+                    } else {
+                        text.append("tspan")
+                            .attr("x", text.attr("x"))
+                            .attr("dy", "1.1em")
+                            .text(word);
+                    }
+                });
+            } else {
+                text.text(d);
+            }
+        });
 
     // Radar line (connect data points with straight lines for pentagon) and close the path
     const radarLine = d3.lineRadial()
