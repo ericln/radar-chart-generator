@@ -41,6 +41,9 @@ let visibilityState = {};
 
 // Load CSV data
 d3.csv("your-data.csv").then(function(data) {
+    // Render the editable table at the top
+    renderTable(data);
+
     // Parse the data into radar chart format
     const radarData = data.map(d => ({
         name: d.Name,  // Get the person's name
@@ -75,7 +78,7 @@ d3.csv("your-data.csv").then(function(data) {
             .style("margin-bottom", "10px");  // Add space between the name and the chart
 
         // Render the radar chart with the corresponding color for the fill and draggable points
-        RadarChart(chartContainer, [individualData.values], radarChartOptions, color);
+        RadarChart(chartContainer, [individualData.values], radarChartOptions, color, individualData.name);
 
         // Add this person's data to the combined dataset
         // combinedData.push(individualData.values);
@@ -96,17 +99,6 @@ d3.csv("your-data.csv").then(function(data) {
 
     // Create legend for the combined chart
     createLegend(combinedData);
-    
-
-    // Create a button for downloading the updated CSV
-    d3.select("body").append("button")
-        .text("Download Updated CSV")
-        .style("display", "block")
-        .style("margin", "40px auto")
-        .style("padding", "10px 20px")
-        .style("font-size", "16px")
-        .style("cursor", "pointer")
-        .on("click", () => downloadCSV(radarData));  // Call the download function on click
 });
 
 function RadarCombinedChart(container, data, options) {
@@ -252,8 +244,19 @@ function RadarCombinedChart(container, data, options) {
                     // Move initials with the circle
                     initials.attr("x", newX).attr("y", newY);
 
-                    // Optionally, update the data value dynamically
+                    // Update the data value dynamically
                     d.value = newValue;
+                    
+                    // Update the radar path in the combined chart
+                    const radarLine = d3.lineRadial()
+                        .curve(d3.curveLinearClosed)
+                        .radius(d => rScale(d.value))
+                        .angle((d, i) => i * angleSlice);
+                    
+                    radarWrapper.select("path").attr("d", radarLine);
+                    
+                    // Update the table and individual chart
+                    updateTableFromCombinedChart(d.axis, newValue, personData.name);
                 }));
 
             const initials = radarWrapper.append("text")
@@ -274,7 +277,7 @@ function RadarCombinedChart(container, data, options) {
 }
 
 /* RadarChart function */
-function RadarChart(container, data, options, color) {
+function RadarChart(container, data, options, color, personName) {
     console.log(`options: ${options.color}`)
     console.log(`color : ${color}`)
     const cfg = {
@@ -402,6 +405,9 @@ function RadarChart(container, data, options, color) {
             d3.select(this)
                 .attr("cx", rScale(d.value) * Math.cos(angle))
                 .attr("cy", rScale(d.value) * Math.sin(angle));
+            
+            // Update the table value and combined chart
+            updateTableFromChart(d.axis, newValue, personName);
         });
 
     const points = radarWrapper.selectAll(".radarCircle")
@@ -537,80 +543,472 @@ function updateLegendAppearance() {
         });
 }
 
-/* Function to download updated data as CSV */
-function downloadCSV(data) {
-    // Convert the updated radar data into CSV format
-    const header = ['Name', ...categories];
-    const rows = data.map(d => [d.name, ...d.values.map(val => val.value)]);
 
-    // Build the CSV string
-    const csvContent = [header, ...rows]
-        .map(row => row.join(','))
-        .join('\n');
-
-    // Create a Blob from the CSV string
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    // Create a download link and trigger the download
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "updated-data.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
 
 // Add table to the top of the page
 function renderTable(data) {
-    const tableContainer = d3.select("body").append("div").attr("id", "table-container");
+    // Create table container with styling
+    const tableContainer = d3.select("body")
+        .insert("div", "h1")
+        .attr("id", "table-container")
+        .style("margin", "20px auto 40px auto")
+        .style("max-width", "1200px")
+        .style("overflow-x", "auto");
+
+    // Add table title
+    tableContainer.append("h2")
+        .text("Editable Data Table")
+        .style("text-align", "center")
+        .style("margin-bottom", "10px")
+        .style("color", "#333");
+
+    // Add instruction text
+    tableContainer.append("p")
+        .text("Edit the values in the table below to see real-time updates in the charts")
+        .style("text-align", "center")
+        .style("margin-bottom", "15px")
+        .style("color", "#666")
+        .style("font-size", "14px");
 
     // Create the table and headers
-    const table = tableContainer.append("table").attr("border", 1).style("margin-bottom", "50px");
-    const header = table.append("thead").append("tr");
-    header.append("th").text("Name");  // First column: Name
-    categories.forEach(category => header.append("th").text(category));  // Add category headers
+    const table = tableContainer.append("table")
+        .attr("border", 1)
+        .style("width", "100%")
+        .style("border-collapse", "collapse")
+        .style("margin-bottom", "20px")
+        .style("background-color", "#fff")
+        .style("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
+
+    const header = table.append("thead").append("tr")
+        .style("background-color", "#f8f9fa")
+        .style("font-weight", "bold");
+    
+    header.append("th")
+        .text("Name")
+        .style("padding", "12px")
+        .style("border", "1px solid #ddd")
+        .style("text-align", "left");
+    
+    categories.forEach(category => {
+        header.append("th")
+            .text(category)
+            .style("padding", "12px")
+            .style("border", "1px solid #ddd")
+            .style("text-align", "center")
+            .style("min-width", "120px");
+    });
 
     // Create table body
     const tbody = table.append("tbody");
 
     // Fill the table with data from CSV
     data.forEach((d, i) => {
-        const row = tbody.append("tr");
-        row.append("td").text(d.Name);  // Name column
+        const row = tbody.append("tr")
+            .style("border-bottom", "1px solid #eee");
+        
+        // Name column (non-editable)
+        row.append("td")
+            .text(d.Name)
+            .style("padding", "12px")
+            .style("border", "1px solid #ddd")
+            .style("font-weight", "500")
+            .style("background-color", "#f8f9fa");
+        
+        // Category columns (editable)
         categories.forEach(category => {
             const cell = row.append("td")
-                .attr("contenteditable", true)  // Make each cell editable
+                .attr("contenteditable", true)
+                .style("padding", "12px")
+                .style("border", "1px solid #ddd")
+                .style("text-align", "center")
+                .style("cursor", "text")
+                .style("background-color", "#fff")
                 .text(d[category]);
 
+            // Add styling for editable cells
+            cell.on("blur", function() {
+                d3.select(this).style("background-color", "#fff");
+            });
+
             // Add listener to handle updates when cell is edited
-            cell.on("input", function () {
-                // Update the radar data and charts when the user edits the table
-                d[category] = +this.textContent;  // Update the value in the data
-                updateRadarChart(i, d);  // Update radar chart for this user
+            cell.on("input", function() {
+                const newValue = +this.textContent;
+                if (!isNaN(newValue) && newValue >= 0 && newValue <= 5) {
+                    d[category] = newValue;
+                    d3.select(this).style("border-color", "#ddd");
+                    updateChartsFromTable();
+                } else {
+                    // Show error state
+                    d3.select(this).style("border-color", "#f44336");
+                    
+                    // Reset to previous value after a short delay
+                    setTimeout(() => {
+                        this.textContent = d[category];
+                        d3.select(this).style("border-color", "#ddd");
+                    }, 1000);
+                }
+            });
+            
+            // Add validation hint on focus
+            cell.on("focus", function() {
+                d3.select(this)
+                    .style("background-color", "#e3f2fd")
+                    .attr("title", "Enter a value between 0 and 5");
             });
         });
     });
+
+    // Add save button
+    const saveButton = tableContainer.append("button")
+        .text("Save Changes to CSV")
+        .style("display", "block")
+        .style("margin", "20px auto")
+        .style("padding", "12px 24px")
+        .style("font-size", "16px")
+        .style("background-color", "#4CAF50")
+        .style("color", "white")
+        .style("border", "none")
+        .style("border-radius", "4px")
+        .style("cursor", "pointer")
+        .style("box-shadow", "0 2px 4px rgba(0,0,0,0.2)");
+
+    saveButton.on("click", function() {
+        saveToOriginalCSV(data);
+    });
+
+    // Add hover effect to save button
+    saveButton.on("mouseover", function() {
+        d3.select(this).style("background-color", "#45a049");
+    });
+
+    saveButton.on("mouseout", function() {
+        d3.select(this).style("background-color", "#4CAF50");
+    });
 }
 
-// Function to update radar chart for a given user index
-function updateRadarChart(userIndex, updatedData) {
-    const radarData = categories.map(category => ({
-        axis: category,
-        value: +updatedData[category]  // Convert the category value to number
+// Helper function to get initials from a person's name
+function getInitials(name) {
+    return name.split(' ').map(d => d[0]).join('');
+}
+
+// Function to update table from individual chart drag
+function updateTableFromChart(categoryAxis, newValue, personName) {
+    // Find the table row for this person
+    const tableRows = d3.selectAll("#table-container tbody tr");
+    
+    tableRows.each(function() {
+        const row = d3.select(this);
+        const nameCell = row.select("td:first-child");
+        
+        if (nameCell.text() === personName) {
+            // Find the correct category column
+            const categoryIndex = categories.indexOf(categoryAxis);
+            if (categoryIndex !== -1) {
+                // Update the table cell
+                const editableCells = row.selectAll("td[contenteditable='true']");
+                const targetCell = d3.select(editableCells.nodes()[categoryIndex]);
+                targetCell.text(Math.round(newValue * 100) / 100); // Round to 2 decimal places
+                
+                // Add visual feedback for the update
+                targetCell.style("background-color", "#4CAF50")
+                    .style("color", "white")
+                    .transition()
+                    .duration(500)
+                    .style("background-color", "#fff")
+                    .style("color", "#333");
+                
+                // Update the combined chart for this person
+                updateCombinedChartFromDrag(personName, categoryAxis, newValue);
+            }
+        }
+    });
+}
+
+// Function to update combined chart when individual chart is dragged
+function updateCombinedChartFromDrag(personName, categoryAxis, newValue) {
+    // Find the person's data in the combined chart
+    const combinedChartSvg = d3.select("#combinedRadarChart svg");
+    
+    // Find all radar wrappers and update the one for this person
+    combinedChartSvg.selectAll(".radarWrapper").each(function() {
+        const wrapper = d3.select(this);
+        const wrapperData = wrapper.datum();
+        
+        // Check if this wrapper belongs to the person (by checking initials in circles)
+        const circles = wrapper.selectAll("circle");
+        const textElements = wrapper.selectAll("text");
+        
+        if (textElements.size() > 0) {
+            const initials = textElements.text();
+            const expectedInitials = getInitials(personName);
+            
+            if (initials === expectedInitials) {
+                // Update the data value
+                const categoryIndex = categories.indexOf(categoryAxis);
+                if (categoryIndex !== -1) {
+                    // Update the radar path
+                    const radarData = categories.map((category, i) => {
+                        if (i === categoryIndex) {
+                            return { axis: category, value: newValue };
+                        }
+                        // Get current value from the circle position
+                        const circle = d3.select(circles.nodes()[i]);
+                        const cx = +circle.attr("cx");
+                        const cy = +circle.attr("cy");
+                        const radius = Math.sqrt(cx * cx + cy * cy);
+                        const rScale = d3.scaleLinear().range([0, Math.min(300, 300)]).domain([0, 5]);
+                        const currentValue = rScale.invert(radius);
+                        return { axis: category, value: currentValue };
+                    });
+                    
+                    // Update the path
+                    const radarLine = d3.lineRadial()
+                        .curve(d3.curveLinearClosed)
+                        .radius(d => {
+                            const rScale = d3.scaleLinear().range([0, Math.min(300, 300)]).domain([0, 5]);
+                            return rScale(d.value);
+                        })
+                        .angle((d, i) => i * (Math.PI * 2 / categories.length));
+                    
+                    wrapper.select("path").datum(radarData).attr("d", radarLine);
+                    
+                    // Update the circle position
+                    const angleSlice = Math.PI * 2 / categories.length;
+                    const rScale = d3.scaleLinear().range([0, Math.min(300, 300)]).domain([0, 5]);
+                    const newX = rScale(newValue) * Math.cos(angleSlice * categoryIndex - Math.PI / 2);
+                    const newY = rScale(newValue) * Math.sin(angleSlice * categoryIndex - Math.PI / 2);
+                    
+                    d3.select(circles.nodes()[categoryIndex])
+                        .attr("cx", newX)
+                        .attr("cy", newY);
+                    
+                    // Update the text position
+                    d3.select(textElements.nodes()[categoryIndex])
+                        .attr("x", newX)
+                        .attr("y", newY);
+                }
+            }
+        }
+    });
+}
+
+// Function to update table from combined chart drag
+function updateTableFromCombinedChart(categoryAxis, newValue, personName) {
+    // Update the table value
+    updateTableFromChart(categoryAxis, newValue, personName);
+    
+    // Update the individual chart for this person
+    updateIndividualChartFromDrag(personName, categoryAxis, newValue);
+}
+
+// Function to update individual chart when combined chart is dragged
+function updateIndividualChartFromDrag(personName, categoryAxis, newValue) {
+    // Find the individual chart for this person
+    const individualCharts = d3.selectAll("[id^='individual-chart-']");
+    
+    individualCharts.each(function() {
+        const chartDiv = d3.select(this);
+        const chartTitle = chartDiv.select("h2").text();
+        
+        if (chartTitle === personName) {
+            // Find the SVG and update the specific data point
+            const svg = chartDiv.select("svg");
+            const categoryIndex = categories.indexOf(categoryAxis);
+            
+            if (categoryIndex !== -1) {
+                // Update the circle position
+                const circles = svg.selectAll(".radarCircle");
+                const targetCircle = d3.select(circles.nodes()[categoryIndex]);
+                
+                // Calculate new position
+                const angleSlice = Math.PI * 2 / categories.length;
+                const radius = Math.min(300, 300); // Using the same radius as in the chart
+                const rScale = d3.scaleLinear().range([0, radius]).domain([0, 5]);
+                const newX = rScale(newValue) * Math.cos(angleSlice * categoryIndex - Math.PI / 2);
+                const newY = rScale(newValue) * Math.sin(angleSlice * categoryIndex - Math.PI / 2);
+                
+                targetCircle.attr("cx", newX).attr("cy", newY);
+                
+                // Update the radar path
+                const radarData = categories.map((category, i) => {
+                    if (i === categoryIndex) {
+                        return { axis: category, value: newValue };
+                    }
+                    // Get current value from other circles
+                    const circle = d3.select(circles.nodes()[i]);
+                    const cx = +circle.attr("cx");
+                    const cy = +circle.attr("cy");
+                    const radius = Math.sqrt(cx * cx + cy * cy);
+                    const currentValue = rScale.invert(radius);
+                    return { axis: category, value: currentValue };
+                });
+                
+                // Update the path
+                const radarLine = d3.lineRadial()
+                    .curve(d3.curveLinearClosed)
+                    .radius(d => rScale(d.value))
+                    .angle((d, i) => i * angleSlice);
+                
+                svg.select(".radarArea").datum(radarData).attr("d", radarLine);
+            }
+        }
+    });
+}
+
+// Function to update all charts when table data changes
+function updateChartsFromTable() {
+    // Clear existing charts
+    d3.selectAll("#combinedRadarChart").selectAll("*").remove();
+    d3.selectAll("[id^='individual-chart-']").remove();
+    d3.selectAll(".legend-container").remove();
+    
+    // Get current table data
+    const tableData = [];
+    d3.selectAll("#table-container tbody tr").each(function() {
+        const row = d3.select(this);
+        const name = row.select("td").text();
+        const rowData = { Name: name };
+        
+        let cellIndex = 0;
+        row.selectAll("td[contenteditable='true']").each(function() {
+            const value = +d3.select(this).text();
+            rowData[categories[cellIndex]] = value;
+            cellIndex++;
+        });
+        
+        tableData.push(rowData);
+    });
+    
+    // Recreate charts with updated data
+    recreateCharts(tableData);
+}
+
+// Function to recreate all charts with new data
+function recreateCharts(data) {
+    // Parse the data into radar chart format
+    const radarData = data.map(d => ({
+        name: d.Name,
+        values: categories.map(category => ({
+            axis: category, 
+            value: +d[category]
+        }))
     }));
 
-    // Re-render the radar chart for this user
-    const radarWrapper = d3.select(`#radar-chart-${userIndex}`);
-    radarWrapper.select("path")
-        .datum(radarData)
-        .attr("d", radarLine);  // Update the radar chart line
+    // Initialize combined data array
+    let combinedData = [];
 
-    // Also update the radar circles for each axis
-    radarWrapper.selectAll(".radarCircle")
-        .data(radarData)
-        .attr("cx", (d, i) => rScale(d.value) * Math.cos(angleSlice * i - Math.PI / 2))
-        .attr("cy", (d, i) => rScale(d.value) * Math.sin(angleSlice * i - Math.PI / 2))
-        .attr("r", cfg.dotRadius);
+    // Create individual charts for each person
+    radarData.forEach((individualData, i) => {
+        const color = radarChartOptions.color(i);
+
+        // Create a div to hold the name and chart
+        const chartContainer = d3.select("body").append("div")
+            .attr("id", `individual-chart-${i}`)
+            .style("margin-bottom", "50px")
+            .style("text-align", "center")
+            .style("display", "flex")
+            .style("flex-direction", "column")
+            .style("align-items", "center");
+
+        // Append the person's name above the chart
+        chartContainer.append("h2")
+            .text(individualData.name)
+            .style("text-align", "center")
+            .style("color", color)
+            .style("margin-bottom", "10px");
+
+                 // Render the radar chart
+         RadarChart(chartContainer, [individualData.values], radarChartOptions, color, individualData.name);
+
+        // Add this person's data to the combined dataset
+        combinedData.push({name: individualData.name, datavalue: individualData.values, color, id: `person-${i}`});
+        
+        // Update visibility state for this person (maintain previous state if exists)
+        if (visibilityState[`person-${i}`] === undefined) {
+            visibilityState[`person-${i}`] = true;
+        }
+    });
+
+    // Create combined radar chart
+    const combinedContainer = d3.select("#combinedRadarChart");
+    RadarCombinedChart(combinedContainer, combinedData, Object.assign({}, radarChartOptions, {
+        fillOpacity: 0,
+        color: d3.scaleOrdinal(d3.schemeCategory10)
+    }));
+
+    // Create legend
+    createLegend(combinedData);
+    
+    // Apply current visibility states
+    Object.keys(visibilityState).forEach(personId => {
+        if (!visibilityState[personId]) {
+            const combinedElement = d3.select(`#combined-${personId}`);
+            combinedElement.style("display", "none");
+            
+            const individualChartId = personId.replace('person-', 'individual-chart-');
+            const individualElement = d3.select(`#${individualChartId}`);
+            individualElement.style("display", "none");
+        }
+    });
+    
+    // Update legend appearance
+    updateLegendAppearance();
+}
+
+// Function to save changes to original CSV file
+function saveToOriginalCSV(originalData) {
+    // Get current data from the table instead of using original data
+    const currentData = getCurrentTableData();
+    
+    // Convert current data to CSV format
+    const header = ['Name', ...categories];
+    const rows = currentData.map(d => [d.Name, ...categories.map(category => d[category])]);
+    
+    const csvContent = [header, ...rows]
+        .map(row => row.join(','))
+        .join('\n');
+    
+    // Create a Blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "your-data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message
+    const saveButton = d3.select("#table-container button");
+    const originalText = saveButton.text();
+    saveButton.text("Saved!")
+        .style("background-color", "#2196F3");
+    
+    setTimeout(() => {
+        saveButton.text(originalText)
+            .style("background-color", "#4CAF50");
+    }, 2000);
+}
+
+// Function to get current data from the table
+function getCurrentTableData() {
+    const tableData = [];
+    d3.selectAll("#table-container tbody tr").each(function() {
+        const row = d3.select(this);
+        const name = row.select("td:first-child").text();
+        const rowData = { Name: name };
+        
+        let cellIndex = 0;
+        row.selectAll("td[contenteditable='true']").each(function() {
+            const value = +d3.select(this).text();
+            rowData[categories[cellIndex]] = value;
+            cellIndex++;
+        });
+        
+        tableData.push(rowData);
+    });
+    
+    return tableData;
 }
 

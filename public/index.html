@@ -60,6 +60,24 @@
         .legend-item:active {
             transform: translateY(0);
         }
+        /* Table styling */
+        #table-container {
+            font-family: Arial, sans-serif;
+        }
+        #table-container table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #table-container td[contenteditable="true"] {
+            transition: background-color 0.2s ease;
+        }
+        #table-container td[contenteditable="true"]:hover {
+            background-color: #f0f0f0 !important;
+        }
+        #table-container td[contenteditable="true"]:focus {
+            outline: 2px solid #2196F3;
+            outline-offset: -2px;
+        }
     </style>
 </head>
 <body>
