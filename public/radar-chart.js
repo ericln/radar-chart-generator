@@ -3,13 +3,26 @@ const height = 600;
 const margin = {top: 100, right: 100, bottom: 100, left: 100}; // Increased margins
 
 // Categories and their corresponding labels
-const categories = ["Technology", "System", "People", "Process", "Influence"];
+//const categories = ["Technology", "System", "People", "Process", "Influence"];
+const categories = ["FE & UX Architecture", "BE & System Design", "Data & Performance Engineering", "Distirbuted Systems", "System and Infrastructure"];
+
+
+// const categoryLevels = [
+//     ["Adopts", "Specializes", "Evangelizes", "Masters", "Creates"],  // Technology
+//     ["Enhances", "Designs", "Owns", "Evolves", "Leads"],             // System
+//     ["Leans", "Supports", "Mentors", "Coordinates", "Manages"],      // People
+//     ["Follows", "Enforces", "Challenges", "Adjusts", "Defines"],     // Process
+//     ["Sub-system", "Teams", "Multiple Teams", "Company", "Community"] // Influence
+// ];
+
+// "Learning", "Applying", "Expert", "Mentoring", "Teaching"
+
 const categoryLevels = [
-    ["Adopts", "Specializes", "Evangelizes", "Masters", "Creates"],  // Technology
-    ["Enhances", "Designs", "Owns", "Evolves", "Leads"],             // System
-    ["Leans", "Supports", "Mentors", "Coordinates", "Manages"],      // People
-    ["Follows", "Enforces", "Challenges", "Adjusts", "Defines"],     // Process
-    ["Sub-system", "Teams", "Multiple Teams", "Company", "Community"] // Influence
+    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],  // FE & UX Architecture
+    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],             // BE & System Design
+    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],      // Data & Performance Engineering
+    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],     // Distirbuted Systems
+    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"] // System and Infrastructure
 ];
 
 // Radar chart options
@@ -22,6 +35,9 @@ const radarChartOptions = {
     roundStrokes: false,  // Set to false for straight edges (pentagon shape)
     color: d3.scaleOrdinal(d3.schemeCategory10)  // Color scheme for radar
 };
+
+// Global visibility state tracking
+let visibilityState = {};
 
 // Load CSV data
 d3.csv("your-data.csv").then(function(data) {
@@ -44,7 +60,12 @@ d3.csv("your-data.csv").then(function(data) {
 
         // Create a div to hold the name and chart
         const chartContainer = d3.select("body").append("div")
-            .style("margin-bottom", "50px");
+            .attr("id", `individual-chart-${i}`)
+            .style("margin-bottom", "50px")
+            .style("text-align", "center")
+            .style("display", "flex")
+            .style("flex-direction", "column")
+            .style("align-items", "center");
 
         // Append the person's name above the chart and apply the corresponding color
         chartContainer.append("h2")
@@ -58,7 +79,10 @@ d3.csv("your-data.csv").then(function(data) {
 
         // Add this person's data to the combined dataset
         // combinedData.push(individualData.values);
-        combinedData.push({name: individualData.name, datavalue: individualData.values, color});
+        combinedData.push({name: individualData.name, datavalue: individualData.values, color, id: `person-${i}`});
+        
+        // Initialize visibility state for this person
+        visibilityState[`person-${i}`] = true;
     });
 
     const combinedContainer = d3.select("#combinedRadarChart")
@@ -69,13 +93,19 @@ d3.csv("your-data.csv").then(function(data) {
         fillOpacity: 0,  // Disable color filling
         color: d3.scaleOrdinal(d3.schemeCategory10)  // Use different color for each person
     }));
+
+    // Create legend for the combined chart
+    createLegend(combinedData);
     
 
     // Create a button for downloading the updated CSV
     d3.select("body").append("button")
         .text("Download Updated CSV")
         .style("display", "block")
-        .style("margin", "20px auto")
+        .style("margin", "40px auto")
+        .style("padding", "10px 20px")
+        .style("font-size", "16px")
+        .style("cursor", "pointer")
         .on("click", () => downloadCSV(radarData));  // Call the download function on click
 });
 
@@ -182,7 +212,9 @@ function RadarCombinedChart(container, data, options) {
         const color = personData.color;
 
         // Radar line group
-        const radarWrapper = svg.append("g").attr("class", "radarWrapper");
+        const radarWrapper = svg.append("g")
+            .attr("class", "radarWrapper")
+            .attr("id", `combined-${personData.id}`);
 
         radarWrapper
             .selectAll(".radarArea")
@@ -382,6 +414,127 @@ function RadarChart(container, data, options, color) {
         .style("fill", cfg.color)
         .style("fill-opacity", 0.8)
         .call(drag);  // Enable dragging for the points
+}
+
+/* Function to create legend for the combined chart */
+function createLegend(data) {
+    // Create legend container - insert it before the combined chart
+    const legendContainer = d3.select("body")
+        .insert("div", "#combinedRadarChart")
+        .attr("class", "legend-container")
+        .style("display", "flex")
+        .style("flex-direction", "column")
+        .style("justify-content", "center")
+        .style("align-items", "center")
+        .style("margin", "20px 0")
+        .style("padding", "15px")
+        .style("background-color", "#f8f9fa")
+        .style("border-radius", "8px")
+        .style("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
+
+    // Add legend title
+    legendContainer.append("div")
+        .style("width", "100%")
+        .style("text-align", "center")
+        .style("margin-bottom", "5px")
+        .style("font-weight", "bold")
+        .style("font-size", "16px")
+        .style("color", "#555")
+        .text("Legend");
+
+    // Add instruction text
+    legendContainer.append("div")
+        .style("width", "100%")
+        .style("text-align", "center")
+        .style("margin-bottom", "10px")
+        .style("font-size", "12px")
+        .style("color", "#777")
+        .style("font-style", "italic")
+        .text("Click on names to show/hide charts");
+
+    // Create legend items container
+    const legendItemsContainer = legendContainer.append("div")
+        .style("display", "flex")
+        .style("justify-content", "center")
+        .style("align-items", "center")
+        .style("flex-wrap", "wrap");
+
+    // Create legend items
+    const legendItems = legendItemsContainer.selectAll(".legend-item")
+        .data(data)
+        .enter()
+        .append("div")
+        .attr("class", "legend-item")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("margin", "5px 15px")
+        .style("font-size", "14px")
+        .style("font-weight", "500");
+
+    // Add color circles
+    legendItems.append("div")
+        .attr("class", "legend-color-circle")
+        .style("width", "16px")
+        .style("height", "16px")
+        .style("border-radius", "50%")
+        .style("background-color", d => d.color)
+        .style("margin-right", "8px")
+        .style("border", "2px solid #fff")
+        .style("box-shadow", "0 1px 3px rgba(0,0,0,0.3)");
+
+    // Add names
+    legendItems.append("span")
+        .text(d => d.name)
+        .style("color", "#333");
+
+    // Add click handlers to legend items
+    legendItems
+        .style("cursor", "pointer")
+        .attr("title", "Click to show/hide this person's charts")
+        .on("click", function(event, d) {
+            togglePersonVisibility(d.id);
+            updateLegendAppearance();
+        });
+}
+
+/* Function to toggle person visibility in both charts */
+function togglePersonVisibility(personId) {
+    // Toggle visibility state
+    visibilityState[personId] = !visibilityState[personId];
+    
+    // Toggle combined chart visibility
+    const combinedElement = d3.select(`#combined-${personId}`);
+    if (visibilityState[personId]) {
+        combinedElement.style("display", "block");
+    } else {
+        combinedElement.style("display", "none");
+    }
+    
+    // Toggle individual chart visibility
+    const individualChartId = personId.replace('person-', 'individual-chart-');
+    const individualElement = d3.select(`#${individualChartId}`);
+    if (visibilityState[personId]) {
+        individualElement.style("display", "flex");
+    } else {
+        individualElement.style("display", "none");
+    }
+}
+
+/* Function to update legend appearance based on visibility state */
+function updateLegendAppearance() {
+    d3.selectAll(".legend-item")
+        .style("opacity", function(d) {
+            return visibilityState[d.id] ? 1 : 0.3;
+        })
+        .style("text-decoration", function(d) {
+            return visibilityState[d.id] ? "none" : "line-through";
+        });
+    
+    // Also update the color circles opacity
+    d3.selectAll(".legend-color-circle")
+        .style("opacity", function(d) {
+            return visibilityState[d.id] ? 1 : 0.3;
+        });
 }
 
 /* Function to download updated data as CSV */

@@ -132,3 +132,6 @@ dist
 
 
 .DS_Store
+
+# Exclude copied CSV data files
+your-data copy*.csv

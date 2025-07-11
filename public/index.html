@@ -8,20 +8,66 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
         }
         .radarChart {
             margin: 50px auto;
             max-width: 600px;
         }
+        #combinedRadarChart {
+            text-align: center;
+            margin: 40px auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        svg {
+            margin: 0 auto;
+            display: block;
+        }
+        h1 {
+            text-align: center;
+            margin: 40px 0 20px 0;
+            color: #333;
+        }
+        h2 {
+            text-align: center;
+            margin: 20px 0 10px 0;
+        }
+        button {
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .legend-container {
+            max-width: 800px;
+            margin: 20px auto !important;
+        }
+        .legend-item {
+            transition: all 0.2s ease;
+            padding: 8px 12px;
+            border-radius: 4px;
+            user-select: none;
+        }
+        .legend-item:hover {
+            transform: translateY(-2px);
+            background-color: rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .legend-item:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
     
+    <button id="getClipboard">Paste CSV from Clipboard</button>
+    <h1>Combined Radar Chart</h1>
     <div id="combinedRadarChart"></div>
-
-
-    
-
+    <h1>Individual Radar Charts</h1>
     <script src="radar-chart.js"></script>
 </body>
 </html>
