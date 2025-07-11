@@ -18,11 +18,11 @@ const categories = ["FE & UX Architecture", "BE & System Design", "Data & Perfor
 // "Learning", "Applying", "Expert", "Mentoring", "Teaching"
 
 const categoryLevels = [
-    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],  // FE & UX Architecture
-    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],             // BE & System Design
-    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],      // Data & Performance Engineering
-    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"],     // Distirbuted Systems
-    ["Learning", "Applying", "Expert", "Mentoring", "Teaching"] // System and Infrastructure
+    ["Learning", "Applying", "Expert", "Mentoring/Teaching", "Creating"],  // FE & UX Architecture
+    ["Learning", "Applying", "Expert", "Mentoring/Teaching", "Creating"],             // BE & System Design
+    ["Learning", "Applying", "Expert", "Mentoring/Teaching", "Creating"],      // Data & Performance Engineering
+    ["Learning", "Applying", "Expert", "Mentoring/Teaching", "Creating"],     // Distirbuted Systems
+    ["Learning", "Applying", "Expert", "Mentoring/Teaching", "Creating"] // System and Infrastructure
 ];
 
 // Radar chart options
@@ -62,7 +62,7 @@ d3.csv("your-data.csv").then(function(data) {
         console.log(`${individualData.name} - ${color}`)
 
         // Create a div to hold the name and chart
-        const chartContainer = d3.select("body").append("div")
+        const chartContainer = d3.select("#individual-content").append("div")
             .attr("id", `individual-chart-${i}`)
             .style("margin-bottom", "50px")
             .style("text-align", "center")
@@ -99,6 +99,9 @@ d3.csv("your-data.csv").then(function(data) {
 
     // Create legend for the combined chart
     createLegend(combinedData);
+    
+    // Initialize collapsible sections
+    initializeCollapsibleSections();
 });
 
 function RadarCombinedChart(container, data, options) {
@@ -479,7 +482,7 @@ function RadarChart(container, data, options, color, personName) {
 /* Function to create legend for the combined chart */
 function createLegend(data) {
     // Create legend container - insert it before the combined chart
-    const legendContainer = d3.select("body")
+    const legendContainer = d3.select("#combined-content")
         .insert("div", "#combinedRadarChart")
         .attr("class", "legend-container")
         .style("display", "flex")
@@ -603,21 +606,51 @@ function updateLegendAppearance() {
 function renderTable(data) {
     // Create table container with styling
     const tableContainer = d3.select("body")
-        .insert("div", "h1")
+        .insert("div", "#combined-section")
         .attr("id", "table-container")
         .style("margin", "20px auto 40px auto")
         .style("max-width", "1200px")
         .style("overflow-x", "auto");
 
-    // Add table title
-    tableContainer.append("h2")
-        .text("Editable Data Table")
-        .style("text-align", "center")
+    // Add table title with collapse button
+    const titleContainer = tableContainer.append("div")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("justify-content", "center")
         .style("margin-bottom", "10px")
+        .style("cursor", "pointer")
+        .attr("id", "table-title-container")
+        .attr("title", "Click to collapse/expand table");
+
+    const collapseButton = titleContainer.append("span")
+        .attr("id", "collapse-button")
+        .style("margin-right", "10px")
+        .style("font-size", "18px")
+        .style("color", "#666")
+        .style("user-select", "none")
+        .text("▼");
+
+    titleContainer.append("h2")
+        .text("Editable Data Table")
+        .style("margin", "0")
         .style("color", "#333");
 
+    const hintText = titleContainer.append("span")
+        .style("margin-left", "10px")
+        .style("font-size", "12px")
+        .style("color", "#999")
+        .style("font-style", "italic")
+        .text("(click to toggle)");
+
+    // Create collapsible content container
+    const collapsibleContent = tableContainer.append("div")
+        .attr("id", "table-collapsible-content")
+        .style("overflow", "hidden")
+        .style("transition", "max-height 0.3s ease-out")
+        .style("max-height", "none");
+
     // Add instruction text
-    tableContainer.append("p")
+    collapsibleContent.append("p")
         .text("Edit the values in the table below to see real-time updates in the charts")
         .style("text-align", "center")
         .style("margin-bottom", "15px")
@@ -625,7 +658,7 @@ function renderTable(data) {
         .style("font-size", "14px");
 
     // Create the table and headers
-    const table = tableContainer.append("table")
+    const table = collapsibleContent.append("table")
         .attr("border", 1)
         .style("width", "100%")
         .style("border-collapse", "collapse")
@@ -713,7 +746,7 @@ function renderTable(data) {
     });
 
     // Add save button
-    const saveButton = tableContainer.append("button")
+    const saveButton = collapsibleContent.append("button")
         .text("Save Changes to CSV")
         .style("display", "block")
         .style("margin", "20px auto")
@@ -737,6 +770,27 @@ function renderTable(data) {
 
     saveButton.on("mouseout", function() {
         d3.select(this).style("background-color", "#4CAF50");
+    });
+
+    // Add collapse/expand functionality
+    titleContainer.on("click", function() {
+        const content = d3.select("#table-collapsible-content");
+        const button = d3.select("#collapse-button");
+        const isCollapsed = content.style("max-height") === "0px";
+        
+        if (isCollapsed) {
+            // Expand
+            content.style("max-height", "none");
+            button.text("▼");
+        } else {
+            // Collapse
+            const contentHeight = content.node().scrollHeight;
+            content.style("max-height", contentHeight + "px");
+            // Force reflow
+            content.node().offsetHeight;
+            content.style("max-height", "0px");
+            button.text("▶");
+        }
     });
 }
 
@@ -913,7 +967,7 @@ function updateIndividualChartFromDrag(personName, categoryAxis, newValue) {
 function updateChartsFromTable() {
     // Clear existing charts
     d3.selectAll("#combinedRadarChart").selectAll("*").remove();
-    d3.selectAll("[id^='individual-chart-']").remove();
+    d3.selectAll("#individual-content").selectAll("*").remove();
     d3.selectAll(".legend-container").remove();
     
     // Get current table data
@@ -956,7 +1010,7 @@ function recreateCharts(data) {
         const color = radarChartOptions.color(i);
 
         // Create a div to hold the name and chart
-        const chartContainer = d3.select("body").append("div")
+        const chartContainer = d3.select("#individual-content").append("div")
             .attr("id", `individual-chart-${i}`)
             .style("margin-bottom", "50px")
             .style("text-align", "center")
@@ -1007,6 +1061,9 @@ function recreateCharts(data) {
     
     // Update legend appearance
     updateLegendAppearance();
+    
+    // Reinitialize collapsible sections
+    initializeCollapsibleSections();
 }
 
 // Function to save changes to original CSV file
@@ -1064,5 +1121,39 @@ function getCurrentTableData() {
     });
     
     return tableData;
+}
+
+// Function to initialize collapsible sections
+function initializeCollapsibleSections() {
+    // Combined chart section
+    d3.select("#combined-title-container").on("click", function() {
+        toggleSection("combined");
+    });
+    
+    // Individual charts section
+    d3.select("#individual-title-container").on("click", function() {
+        toggleSection("individual");
+    });
+}
+
+// Function to toggle collapsible sections
+function toggleSection(sectionType) {
+    const content = d3.select(`#${sectionType}-content`);
+    const button = d3.select(`#${sectionType}-collapse-button`);
+    const isCollapsed = content.style("max-height") === "0px";
+    
+    if (isCollapsed) {
+        // Expand
+        content.style("max-height", "none");
+        button.text("▼");
+    } else {
+        // Collapse
+        const contentHeight = content.node().scrollHeight;
+        content.style("max-height", contentHeight + "px");
+        // Force reflow
+        content.node().offsetHeight;
+        content.style("max-height", "0px");
+        button.text("▶");
+    }
 }
 

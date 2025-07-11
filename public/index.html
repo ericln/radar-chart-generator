@@ -78,14 +78,85 @@
             outline: 2px solid #2196F3;
             outline-offset: -2px;
         }
+        /* Collapsible table styling */
+        #table-title-container {
+            transition: all 0.2s ease;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #table-title-container:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        #collapse-button {
+            transition: transform 0.2s ease;
+        }
+        #table-collapsible-content {
+            transition: max-height 0.3s ease-out;
+        }
+        /* Collapsible chart sections styling */
+        #combined-title-container,
+        #individual-title-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0 10px 0;
+        }
+        #combined-title-container:hover,
+        #individual-title-container:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        #combined-collapse-button,
+        #individual-collapse-button {
+            margin-right: 10px;
+            font-size: 18px;
+            color: #666;
+            user-select: none;
+            transition: transform 0.2s ease;
+        }
+        #combined-content,
+        #individual-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .toggle-hint {
+            margin-left: 10px;
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     
     <button id="getClipboard">Paste CSV from Clipboard</button>
-    <h1>Combined Radar Chart</h1>
-    <div id="combinedRadarChart"></div>
-    <h1>Individual Radar Charts</h1>
+    
+    <!-- Combined Radar Chart Section -->
+    <div id="combined-section">
+        <div id="combined-title-container" title="Click to collapse/expand combined chart">
+            <span id="combined-collapse-button">▼</span>
+            <h1>Combined Radar Chart</h1>
+            <span class="toggle-hint">(click to toggle)</span>
+        </div>
+        <div id="combined-content">
+            <div id="combinedRadarChart"></div>
+        </div>
+    </div>
+    
+    <!-- Individual Radar Charts Section -->
+    <div id="individual-section">
+        <div id="individual-title-container" title="Click to collapse/expand individual charts">
+            <span id="individual-collapse-button">▼</span>
+            <h1>Individual Radar Charts</h1>
+            <span class="toggle-hint">(click to toggle)</span>
+        </div>
+        <div id="individual-content">
+            <!-- Individual charts will be appended here -->
+        </div>
+    </div>
     <script src="radar-chart.js"></script>
 </body>
 </html>
